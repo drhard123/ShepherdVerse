@@ -1,98 +1,219 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { BorderRadius, Colors, Spacing, Typography } from '../../constants/theme';
+import { getDailyVerse, VerseData } from '../../services/bibleApi';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type QuickItem = {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  color: string;
+};
+
+const QUICK_ITEMS: QuickItem[] = [
+  { icon: 'book-outline', label: 'Read Bible', color: '#2C5F2E' },
+  { icon: 'bookmark-outline', label: 'Bookmarks', color: '#1565C0' },
+  { icon: 'image-outline', label: 'Create Card', color: '#6A1B9A' },
+  { icon: 'notifications-outline', label: 'Reminders', color: '#E65100' },
+];
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [verse, setVerse] = useState<VerseData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  useEffect(() => {
+    loadDailyVerse();
+  }, []);
+
+  const loadDailyVerse = async (): Promise<void> => {
+    setLoading(true);
+    const data = await getDailyVerse();
+    setVerse(data);
+    setLoading(false);
+  };
+
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header Banner */}
+      <View style={styles.banner}>
+        <Text style={styles.appName}>ShepherdVerse</Text>
+        <Text style={styles.tagline}>Voice of God • Word of Life</Text>
+        <Text style={styles.dateText}>{today}</Text>
+      </View>
+
+      {/* Daily Verse Card */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="sunny" size={18} color={Colors.secondary} />
+          <Text style={styles.sectionTitle}>Verse of the Day</Text>
+        </View>
+
+        {loading ? (
+          <View style={styles.loadingCard}>
+            <ActivityIndicator color={Colors.primary} size="large" />
+            <Text style={styles.loadingText}>Loading today's verse...</Text>
+          </View>
+        ) : verse ? (
+          <View style={styles.verseCard}>
+            <Text style={styles.verseText}>"{verse.text}"</Text>
+            <Text style={styles.verseRef}>{verse.reference}</Text>
+            <TouchableOpacity style={styles.shareBtn}>
+              <Ionicons name="share-social-outline" size={16} color={Colors.primary} />
+              <Text style={styles.shareBtnText}>Share this verse</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.verseCard}>
+            <Text style={styles.verseText}>
+              "For God so loved the world that he gave his one and only Son,
+              that whoever believes in him shall not perish but have eternal life."
+            </Text>
+            <Text style={styles.verseRef}>John 3:16</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Quick Access */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Quick Access</Text>
+        <View style={styles.quickGrid}>
+          {QUICK_ITEMS.map((item) => (
+            <TouchableOpacity key={item.label} style={styles.quickItem}>
+              <View style={[styles.quickIcon, { backgroundColor: item.color + '18' }]}>
+                <Ionicons name={item.icon} size={26} color={item.color} />
+              </View>
+              <Text style={styles.quickLabel}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Reading Plans */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Reading Plans</Text>
+        <View style={styles.planCard}>
+          <Ionicons name="calendar-outline" size={32} color={Colors.primary} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.planTitle}>30-Day New Testament</Text>
+            <Text style={styles.planSub}>Coming in Phase 2 · Stay tuned!</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+        </View>
+      </View>
+
+      <View style={{ height: 30 }} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: { flex: 1, backgroundColor: Colors.background },
+  banner: {
+    backgroundColor: Colors.primary,
+    padding: Spacing.lg,
+    paddingTop: 40,
+    alignItems: 'center',
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: Colors.textLight,
+    letterSpacing: 1,
+  },
+  tagline: { fontSize: 13, color: '#A8D5AA', marginTop: 4 },
+  dateText: { fontSize: 12, color: '#A8D5AA', marginTop: 8 },
+  section: { margin: Spacing.md, marginBottom: 0 },
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    marginBottom: 10,
   },
-  stepContainer: {
-    gap: 8,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 10,
+  },
+  loadingCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: 32,
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+  },
+  loadingText: { marginTop: 10, color: Colors.textSecondary, fontSize: 14 },
+  verseCard: {
+    backgroundColor: Colors.verseHighlight,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    borderWidth: 0.5,
+    borderColor: '#E8D5A0',
+  },
+  verseText: { ...Typography.verse, color: Colors.text },
+  verseRef: {
+    ...Typography.reference,
+    color: Colors.primary,
+    marginTop: 12,
+    textAlign: 'right',
+  },
+  shareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 14,
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.full,
+    borderWidth: 0.5,
+    borderColor: Colors.primary,
+  },
+  shareBtnText: { fontSize: 13, color: Colors.primary, fontWeight: '500' },
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  quickItem: {
+    width: '47%',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+  },
+  quickIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  quickLabel: { fontSize: 13, fontWeight: '500', color: Colors.text },
+  planCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: Colors.border,
   },
+  planTitle: { fontSize: 15, fontWeight: '600', color: Colors.text },
+  planSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 3 },
 });

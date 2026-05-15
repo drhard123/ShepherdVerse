@@ -40,15 +40,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="share"
-        options={{
-          title: 'Share',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name={'share-social' as IoniconsName} size={size} color={color} />
-          ),
-        }}
-      />
+      
       <Tabs.Screen
         name="emotions"
         options={{
@@ -58,6 +50,19 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="share"
+        options={{
+          title: 'Share',
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <Ionicons name={'share-social' as IoniconsName} size={size} color={color} />
+          ),
+        }}
+      />
+
+
+
       <Tabs.Screen
         name="settings"
         options={{

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,16 +16,18 @@ type QuickItem = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   label: string;
   color: string;
+  route: string;
 };
 
 const QUICK_ITEMS: QuickItem[] = [
-  { icon: 'book-outline', label: 'Read Bible', color: '#2C5F2E' },
-  { icon: 'bookmark-outline', label: 'Bookmarks', color: '#1565C0' },
-  { icon: 'image-outline', label: 'Create Card', color: '#6A1B9A' },
-  { icon: 'notifications-outline', label: 'Reminders', color: '#E65100' },
+  { icon: 'book-outline', label: 'Read Bible', color: '#2C5F2E', route: '/bible' },
+  { icon: 'bookmark-outline', label: 'Saved Verses', color: '#1565C0', route: '/bookmarks' },
+  { icon: 'image-outline', label: 'Create Card', color: '#6A1B9A', route: '/share' },
+  { icon: 'heart-outline', label: 'Emotions', color: '#E65100', route: '/emotions' },
 ];
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [verse, setVerse] = useState<VerseData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -71,7 +74,10 @@ export default function HomeScreen() {
           <View style={styles.verseCard}>
             <Text style={styles.verseText}>"{verse.text}"</Text>
             <Text style={styles.verseRef}>{verse.reference}</Text>
-            <TouchableOpacity style={styles.shareBtn}>
+            <TouchableOpacity
+              style={styles.shareBtn}
+              onPress={() => router.push('/share')}
+            >
               <Ionicons name="share-social-outline" size={16} color={Colors.primary} />
               <Text style={styles.shareBtnText}>Share this verse</Text>
             </TouchableOpacity>
@@ -92,7 +98,11 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle}>Quick Access</Text>
         <View style={styles.quickGrid}>
           {QUICK_ITEMS.map((item) => (
-            <TouchableOpacity key={item.label} style={styles.quickItem}>
+            <TouchableOpacity
+              key={item.label}
+              style={styles.quickItem}
+              onPress={() => router.push(item.route as any)}
+            >
               <View style={[styles.quickIcon, { backgroundColor: item.color + '18' }]}>
                 <Ionicons name={item.icon} size={26} color={item.color} />
               </View>

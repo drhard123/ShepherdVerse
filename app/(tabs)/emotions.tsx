@@ -1,14 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import {
-    ActivityIndicator,
-    FlatList,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { BorderRadius, Colors, Spacing } from '../../constants/theme';
 
@@ -167,7 +168,16 @@ export default function EmotionsScreen() {
                     <Ionicons name="bookmark-outline" size={16} color={Colors.textSecondary} />
                     <Text style={styles.actionText}>Save</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionBtn}>
+                  <TouchableOpacity
+                    style={styles.actionBtn}
+                    onPress={() => router.push({
+                      pathname: '/sharecard',
+                      params: {
+                        verseText: item.text.trim(),
+                        verseRef: item.reference,
+                      }
+                    })}
+                  >
                     <Ionicons name="image-outline" size={16} color={Colors.textSecondary} />
                     <Text style={styles.actionText}>Create Card</Text>
                   </TouchableOpacity>

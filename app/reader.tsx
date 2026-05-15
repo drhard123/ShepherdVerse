@@ -4,13 +4,16 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { BorderRadius, Colors, Spacing } from '../constants/theme';
 import { getChapter, VerseData } from '../services/bibleApi';
+import { isBookmarked, removeBookmark, saveBookmark } from '../services/storage';
 
 type Verse = {
   book_id: string;
@@ -27,8 +30,7 @@ export default function ReaderScreen() {
   const [verses, setVerses] = useState<Verse[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentChapter, setCurrentChapter] = useState(parseInt(chapter || '1'));
-  const [bookmarked, setBookmarked] = useState<number[]>([]);
-  const [highlighted, setHighlighted] = useState<number[]>([]);
+  const [bookmarkedVerses, setBookmarkedVerses] = useState<number[]>([]);
 
   useEffect(() => {
     loadChapter();
@@ -40,20 +42,60 @@ export default function ReaderScreen() {
     const data: VerseData | null = await getChapter(book || 'John', currentChapter);
     if (data && data.verses) {
       setVerses(data.verses);
+      await checkBookmarks(data.verses);
     }
     setLoading(false);
   };
 
-  const toggleBookmark = (verseNum: number) => {
-    setBookmarked(prev =>
-      prev.includes(verseNum) ? prev.filter(v => v !== verseNum) : [...prev, verseNum]
-    );
+  const checkBookmarks = async (verseList: Verse[]) => {
+    const bookmarkedNums: number[] = [];
+    for (const v of verseList) {
+      const ref = `${book} ${currentChapter}:${v.verse}`;
+      const saved = await isBookmarked(ref);
+      if (saved) bookmarkedNums.push(v.verse);
+    }
+    setBookmarkedVerses(bookmarkedNums);
   };
 
-  const toggleHighlight = (verseNum: number) => {
-    setHighlighted(prev =>
-      prev.includes(verseNum) ? prev.filter(v => v !== verseNum) : [...prev, verseNum]
-    );
+  const toggleBookmark = async (verse: Verse) => {
+    const ref = `${book} ${currentChapter}:${verse.verse}`;
+    const already = bookmarkedVerses.includes(verse.verse);
+    if (already) {
+      await removeBookmark(ref);
+      setBookmarkedVerses(prev => prev.filter(v => v !== verse.verse));
+      Toast.show({
+        type: 'info',
+        text1: 'Bookmark removed',
+        text2: ref,
+        visibilityTime: 2000,
+        position: 'bottom',
+      });
+    } else {
+      await saveBookmark({
+        reference: ref,
+        text: verse.text,
+        savedAt: new Date().toISOString(),
+      });
+      setBookmarkedVerses(prev => [...prev, verse.verse]);
+      Toast.show({
+        type: 'success',
+        text1: '🔖 Verse saved!',
+        text2: ref,
+        visibilityTime: 2000,
+        position: 'bottom',
+      });
+    }
+  };
+
+  const shareVerse = async (verse: Verse) => {
+    const ref = `${book} ${currentChapter}:${verse.verse}`;
+    try {
+      await Share.share({
+        message: `"${verse.text.trim()}"\n\n— ${ref}\n\nShared via ShepherdVerse`,
+      });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const goToPrev = () => {
@@ -65,37 +107,51 @@ export default function ReaderScreen() {
   };
 
   const renderVerse = ({ item }: { item: Verse }) => {
-    const isBookmarked = bookmarked.includes(item.verse);
-    const isHighlighted = highlighted.includes(item.verse);
+    const isBookmarkedVerse = bookmarkedVerses.includes(item.verse);
 
     return (
-      <View style={[styles.verseRow, isHighlighted && styles.verseHighlighted]}>
+      <View style={[styles.verseRow, isBookmarkedVerse && styles.verseBookmarked]}>
         <Text style={styles.verseNumber}>{item.verse}</Text>
         <View style={styles.verseContent}>
           <Text style={styles.verseText}>{item.text.trim()}</Text>
           <View style={styles.verseActions}>
             <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => toggleBookmark(item.verse)}
+              style={[styles.actionBtn, isBookmarkedVerse && styles.actionBtnActive]}
+              onPress={() => toggleBookmark(item)}
             >
               <Ionicons
-                name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
+                name={isBookmarkedVerse ? 'bookmark' : 'bookmark-outline'}
                 size={16}
-                color={isBookmarked ? Colors.secondary : Colors.textSecondary}
+                color={isBookmarkedVerse ? Colors.secondary : Colors.textSecondary}
               />
+              <Text style={[
+                styles.actionText,
+                isBookmarkedVerse && { color: Colors.secondary }
+              ]}>
+                {isBookmarkedVerse ? 'Saved' : 'Save'}
+              </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.actionBtn}
-              onPress={() => toggleHighlight(item.verse)}
+              onPress={() => shareVerse(item)}
             >
-              <Ionicons
-                name="color-wand-outline"
-                size={16}
-                color={isHighlighted ? Colors.primary : Colors.textSecondary}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBtn}>
               <Ionicons name="share-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.actionText}>Share</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => router.push({
+                pathname: '/sharecard',
+                params: {
+                  verseText: item.text.trim(),
+                  verseRef: `${book} ${currentChapter}:${item.verse}`,
+                }
+              })}
+            >
+              <Ionicons name="image-outline" size={16} color={Colors.textSecondary} />
+              <Text style={styles.actionText}>Card</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -105,7 +161,6 @@ export default function ReaderScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={Colors.textLight} />
@@ -114,12 +169,14 @@ export default function ReaderScreen() {
           <Text style={styles.headerTitle}>{book}</Text>
           <Text style={styles.headerSubtitle}>Chapter {currentChapter}</Text>
         </View>
-        <TouchableOpacity style={styles.backBtn}>
-          <Ionicons name="text-outline" size={22} color={Colors.textLight} />
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.push('/bookmarks')}
+        >
+          <Ionicons name="bookmark-outline" size={22} color={Colors.textLight} />
         </TouchableOpacity>
       </View>
 
-      {/* Verses */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -138,15 +195,20 @@ export default function ReaderScreen() {
         />
       )}
 
-      {/* Chapter Navigation */}
       <View style={styles.navBar}>
         <TouchableOpacity
           style={[styles.navBtn, currentChapter <= 1 && styles.navBtnDisabled]}
           onPress={goToPrev}
           disabled={currentChapter <= 1}
         >
-          <Ionicons name="chevron-back" size={20} color={currentChapter <= 1 ? Colors.border : Colors.primary} />
-          <Text style={[styles.navText, currentChapter <= 1 && styles.navTextDisabled]}>Previous</Text>
+          <Ionicons
+            name="chevron-back"
+            size={20}
+            color={currentChapter <= 1 ? Colors.border : Colors.primary}
+          />
+          <Text style={[styles.navText, currentChapter <= 1 && styles.navTextDisabled]}>
+            Previous
+          </Text>
         </TouchableOpacity>
 
         <View style={styles.chapterBadge}>
@@ -172,7 +234,7 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     paddingHorizontal: Spacing.md,
   },
-  backBtn: { padding: 6 },
+  backBtn: { padding: 6, width: 34 },
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.textLight },
   headerSubtitle: { fontSize: 12, color: '#A8D5AA', marginTop: 2 },
@@ -193,7 +255,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     padding: 8,
   },
-  verseHighlighted: {
+  verseBookmarked: {
     backgroundColor: Colors.verseHighlight,
     borderLeftWidth: 3,
     borderLeftColor: Colors.secondary,
@@ -206,23 +268,28 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   verseContent: { flex: 1 },
-  verseText: {
-    fontSize: 16,
-    lineHeight: 26,
-    color: Colors.text,
-  },
+  verseText: { fontSize: 16, lineHeight: 26, color: Colors.text },
   verseActions: {
     flexDirection: 'row',
     marginTop: 8,
-    gap: 4,
+    gap: 6,
   },
   actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     padding: 6,
     borderRadius: BorderRadius.sm,
     backgroundColor: Colors.surface,
     borderWidth: 0.5,
     borderColor: Colors.border,
+    paddingHorizontal: 10,
   },
+  actionBtnActive: {
+    borderColor: Colors.secondary,
+    backgroundColor: Colors.verseHighlight,
+  },
+  actionText: { fontSize: 12, color: Colors.textSecondary, fontWeight: '500' },
   navBar: {
     flexDirection: 'row',
     alignItems: 'center',

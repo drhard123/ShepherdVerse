@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useRef, useState } from 'react';
 import {
@@ -39,6 +40,10 @@ export default function ShareScreen() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template>(TEMPLATES[0]);
   const [saving, setSaving] = useState(false);
   const cardRef = useRef<View>(null);
+  const { verseText, verseRef } = useLocalSearchParams<{
+    verseText?: string;
+    verseRef?: string;
+  }>();
 
   const loadVerse = async () => {
     setLoading(true);
@@ -97,10 +102,13 @@ export default function ShareScreen() {
     }
   };
 
-  const displayVerse = verse || {
+  const displayVerse = verse || (verseText && verseRef ? {
+    text: verseText,
+    reference: verseRef,
+  } : {
     text: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
     reference: 'John 3:16',
-  };
+  });
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>

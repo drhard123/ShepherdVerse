@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { BorderRadius, Colors, Spacing, Typography } from '../../constants/theme';
 import { getDailyVerse, VerseData } from '../../services/bibleApi';
+import { loadSettings } from '../../services/settingsService';
 
 type QuickItem = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -37,7 +38,8 @@ export default function HomeScreen() {
 
   const loadDailyVerse = async (): Promise<void> => {
     setLoading(true);
-    const data = await getDailyVerse();
+    const s = await loadSettings();
+    const data = await getDailyVerse(s.translation);
     setVerse(data);
     setLoading(false);
   };

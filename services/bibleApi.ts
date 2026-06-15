@@ -19,12 +19,13 @@ export interface VerseData {
 export const getVerse = async (
   book: string,
   chapter: number,
-  verse: number
+  verse: number,
+  translation: string = 'kjv'
 ): Promise<VerseData | null> => {
   try {
     const ref = `${book} ${chapter}:${verse}`;
     const res = await axios.get<VerseData>(
-      `${BASE_URL}/${encodeURIComponent(ref)}`
+      `${BASE_URL}/${encodeURIComponent(ref)}?translation=${translation}`
     );
     return res.data;
   } catch (e) {
@@ -35,12 +36,13 @@ export const getVerse = async (
 
 export const getChapter = async (
   book: string,
-  chapter: number
+  chapter: number,
+  translation: string = 'kjv'
 ): Promise<VerseData | null> => {
   try {
     const ref = `${book} ${chapter}`;
     const res = await axios.get<VerseData>(
-      `${BASE_URL}/${encodeURIComponent(ref)}`
+      `${BASE_URL}/${encodeURIComponent(ref)}?translation=${translation}`
     );
     return res.data;
   } catch (e) {
@@ -49,24 +51,20 @@ export const getChapter = async (
   }
 };
 
-export const getDailyVerse = async (): Promise<VerseData | null> => {
+export const getDailyVerse = async (
+  translation: string = 'kjv'
+): Promise<VerseData | null> => {
   const verses: string[] = [
-    'john 3:16',
-    'psalm 23:1',
-    'philippians 4:13',
-    'jeremiah 29:11',
-    'proverbs 3:5',
-    'romans 8:28',
-    'matthew 11:28',
-    'psalm 46:1',
-    'isaiah 41:10',
+    'john 3:16', 'psalm 23:1', 'philippians 4:13',
+    'jeremiah 29:11', 'proverbs 3:5', 'romans 8:28',
+    'matthew 11:28', 'psalm 46:1', 'isaiah 41:10',
     'joshua 1:9',
   ];
   const today = new Date().getDate();
   const pick = verses[today % verses.length];
   try {
     const res = await axios.get<VerseData>(
-      `${BASE_URL}/${encodeURIComponent(pick)}`
+      `${BASE_URL}/${encodeURIComponent(pick)}?translation=${translation}`
     );
     return res.data;
   } catch (e) {

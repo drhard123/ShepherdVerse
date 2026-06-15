@@ -11,7 +11,14 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { BorderRadius, Colors, Spacing } from '../../constants/theme';
+import {
+  registerForPushNotifications,
+  scheduleDailyVerseNotification,
+  sendTestNotification,
+} from '../../services/notificationService';
+import { AppSettings, DEFAULT_SETTINGS, loadSettings, saveSettings } from '../../services/settingsService';
 
 type Translation = {
   id: string;
@@ -29,61 +36,43 @@ const TRANSLATIONS: Translation[] = [
   { id: 'ylt', name: "Young's Literal Translation", shortName: 'YLT', language: 'English' },
 ];
 
-type Settings = {
-  translation: string;
-  fontSize: number;
-  darkMode: boolean;
-  notifications: boolean;
-  notificationTime: string;
-  verseOfDay: boolean;
-};
+const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
 
-const DEFAULT_SETTINGS: Settings = {
-  translation: 'kjv',
-  fontSize: 16,
-  darkMode: false,
-  notifications: true,
-  notificationTime: '08:00',
-  verseOfDay: true,
-};
 
-const SETTINGS_FILE = FileSystem.documentDirectory + 'settings.json';
 
 export default function SettingsScreen() {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [showTranslations, setShowTranslations] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    loadSettings();
+    loadSettingsData();
   }, []);
 
-  const loadSettings = async () => {
-    try {
-      const info = await FileSystem.getInfoAsync(SETTINGS_FILE);
-      if (info.exists) {
-        const content = await FileSystem.readAsStringAsync(SETTINGS_FILE);
-        setSettings(JSON.parse(content));
-      }
-    } catch (e) {
-      console.error('loadSettings error:', e);
-    }
+  const loadSettingsData = async () => {
+    const s = await loadSettings();
+    setSettings(s);
   };
 
-  const saveSettings = async (updated: Settings) => {
-    try {
-      await FileSystem.writeAsStringAsync(SETTINGS_FILE, JSON.stringify(updated));
-      setSettings(updated);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (e) {
-      console.error('saveSettings error:', e);
-    }
+  const saveSettingsData = async (updated: AppSettings) => {
+    await saveSettings(updated);
+    setSettings(updated);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   };
 
-  const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
+  const updateSetting = async <K extends keyof AppSettings>(
+    key: K,
+    value: AppSettings[K]
+  ) => {
     const updated = { ...settings, [key]: value };
-    saveSettings(updated);
+    await saveSettingsData(updated);
+    if (key === 'notificationTime' || key === 'notifications' || key === 'verseOfDay') {
+      const granted = await registerForPushNotifications();
+      if (granted) {
+        await scheduleDailyVerseNotification();
+      }
+    }
   };
 
   const selectedTranslation = TRANSLATIONS.find(t => t.id === settings.translation) || TRANSLATIONS[0];
@@ -109,6 +98,28 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  const handleTestNotification = async () => {
+    const granted = await registerForPushNotifications();
+    if (granted) {
+      await sendTestNotification();
+      Toast.show({
+        type: 'success',
+        text1: '🔔 Test notification sent!',
+        text2: 'You will receive it in 5 seconds',
+        visibilityTime: 3000,
+        position: 'bottom',
+      });
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'Permission denied',
+        text2: 'Please allow notifications in your phone settings',
+        visibilityTime: 3000,
+        position: 'bottom',
+      });
+    }
   };
 
   return (
@@ -269,6 +280,18 @@ export default function SettingsScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
+                <View style={styles.divider} />
+                <TouchableOpacity
+                  style={styles.testNotifBtn}
+                  onPress={handleTestNotification}
+                >
+                  <Ionicons name="notifications-outline" size={18} color={Colors.primary} />
+                  <View style={{ marginLeft: 10 }}>
+                    <Text style={styles.testNotifTitle}>Send Test Notification</Text>
+                    <Text style={styles.testNotifSub}>Receive a test verse in 5 seconds</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textSecondary} />
+                </TouchableOpacity>
               </View>
             </>
           )}
@@ -424,6 +447,21 @@ const styles = StyleSheet.create({
   timeBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   timeBtnText: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
   timeBtnTextActive: { color: '#fff' },
+  testNotifBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+  },
+  testNotifTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.primary,
+  },
+  testNotifSub: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
   dangerRow: {
     flexDirection: 'row', alignItems: 'center', padding: Spacing.md,
   },

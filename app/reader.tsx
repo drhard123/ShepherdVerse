@@ -13,6 +13,7 @@ import {
 import Toast from 'react-native-toast-message';
 import { BorderRadius, Colors, Spacing } from '../constants/theme';
 import { getChapter, VerseData } from '../services/bibleApi';
+import { AppSettings, loadSettings } from '../services/settingsService';
 import { isBookmarked, removeBookmark, saveBookmark } from '../services/storage';
 
 type Verse = {
@@ -31,15 +32,22 @@ export default function ReaderScreen() {
   const [loading, setLoading] = useState(true);
   const [currentChapter, setCurrentChapter] = useState(parseInt(chapter || '1'));
   const [bookmarkedVerses, setBookmarkedVerses] = useState<number[]>([]);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
 
   useEffect(() => {
-    loadChapter();
+    initReader();
   }, [currentChapter]);
 
-  const loadChapter = async () => {
+  const initReader = async () => {
+    const s = await loadSettings();
+    setSettings(s);
+    await loadChapter(s.translation, s.fontSize);
+  };
+
+  const loadChapter = async (translation: string, fontSize: number) => {
     setLoading(true);
     setVerses([]);
-    const data: VerseData | null = await getChapter(book || 'John', currentChapter);
+    const data: VerseData | null = await getChapter(book || 'John', currentChapter, translation);
     if (data && data.verses) {
       setVerses(data.verses);
       await checkBookmarks(data.verses);
@@ -113,7 +121,9 @@ export default function ReaderScreen() {
       <View style={[styles.verseRow, isBookmarkedVerse && styles.verseBookmarked]}>
         <Text style={styles.verseNumber}>{item.verse}</Text>
         <View style={styles.verseContent}>
-          <Text style={styles.verseText}>{item.text.trim()}</Text>
+          <Text style={[styles.verseText, { fontSize: settings?.fontSize || 16 }]}>
+            {item.text.trim()}
+          </Text>
           <View style={styles.verseActions}>
             <TouchableOpacity
               style={[styles.actionBtn, isBookmarkedVerse && styles.actionBtnActive]}

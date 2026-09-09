@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import { BorderRadius, Colors, Spacing, Typography } from '../../constants/theme';
 import { getDailyVerse, VerseData } from '../../services/bibleApi';
+import { getUserName } from '../../services/onboardingService';
 import { loadSettings } from '../../services/settingsService';
+
 
 type QuickItem = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -31,10 +33,17 @@ export default function HomeScreen() {
   const router = useRouter();
   const [verse, setVerse] = useState<VerseData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
     loadDailyVerse();
+    loadUserName();
   }, []);
+
+  const loadUserName = async () => {
+    const name = await getUserName();
+    setUserName(name);
+  };
 
   const loadDailyVerse = async (): Promise<void> => {
     setLoading(true);
@@ -56,7 +65,9 @@ export default function HomeScreen() {
       {/* Header Banner */}
       <View style={styles.banner}>
         <Text style={styles.appName}>ShepherdVerse</Text>
-        <Text style={styles.tagline}>Voice of God • Word of Life</Text>
+        <Text style={styles.tagline}>
+          {userName ? `Welcome, ${userName}` : 'Voice of God • Word of Life'}
+        </Text>
         <Text style={styles.dateText}>{today}</Text>
       </View>
 

@@ -58,10 +58,21 @@ export const getDailyVerse = async (
     'john 3:16', 'psalm 23:1', 'philippians 4:13',
     'jeremiah 29:11', 'proverbs 3:5', 'romans 8:28',
     'matthew 11:28', 'psalm 46:1', 'isaiah 41:10',
-    'joshua 1:9',
+    'joshua 1:9', 'psalm 119:105', 'john 14:6',
+    'romans 12:2', 'galatians 5:22', 'ephesians 2:8',
+    'hebrews 11:1', '1 corinthians 13:4', 'psalm 91:1',
+    'isaiah 40:31', 'matthew 6:33', 'john 1:1',
+    'psalm 46:10', 'romans 5:8', 'proverbs 31:25',
+    '2 timothy 1:7', 'james 1:2', 'psalm 37:4',
+    'matthew 5:16', 'colossians 3:23', 'john 15:5',
+    'deuteronomy 31:6',
   ];
-  const today = new Date().getDate();
-  const pick = verses[today % verses.length];
+
+  // Use full date as seed so it changes every day
+  const now = new Date();
+  const seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+  const pick = verses[seed % verses.length];
+
   try {
     const res = await axios.get<VerseData>(
       `${BASE_URL}/${encodeURIComponent(pick)}?translation=${translation}`

@@ -100,6 +100,10 @@ export default function SettingsScreen() {
     );
   };
 
+
+
+
+
   const handleTestNotification = async () => {
     const granted = await registerForPushNotifications();
     if (granted) {
@@ -321,6 +325,7 @@ export default function SettingsScreen() {
       </View>
 
       {/* Data */}
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
           <Ionicons name="server-outline" size={15} color={Colors.primary} /> Data
@@ -333,38 +338,79 @@ export default function SettingsScreen() {
               <Text style={styles.dangerSub}>Remove all saved verses</Text>
             </View>
           </TouchableOpacity>
-        </View>
-      </View>
 
-      {/* About */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
-          <Ionicons name="information-circle-outline" size={15} color={Colors.primary} /> About
-        </Text>
-        <View style={styles.card}>
-          <View style={styles.aboutRow}>
-            <Text style={styles.aboutLabel}>App Name</Text>
-            <Text style={styles.aboutValue}>ShepherdVerse</Text>
+          {/* Data */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              <Ionicons name="server-outline" size={15} color={Colors.primary} /> Data
+            </Text>
+            <View style={styles.card}>
+              <TouchableOpacity style={styles.dangerRow} onPress={clearBookmarks}>
+                <Ionicons name="trash-outline" size={18} color={Colors.notification} />
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.dangerTitle}>Clear All Bookmarks</Text>
+                  <Text style={styles.dangerSub}>Remove all saved verses</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+              <TouchableOpacity
+                style={styles.dangerRow}
+                onPress={async () => {
+                  const FileSystem = require('expo-file-system/legacy');
+                  await FileSystem.writeAsStringAsync(
+                    FileSystem.documentDirectory + 'onboarding.json',
+                    JSON.stringify({ completed: false })
+                  );
+                  Alert.alert('Done', 'Restart the app to see onboarding again.');
+                }}
+              >
+                <Ionicons name="refresh-outline" size={18} color={Colors.notification} />
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.dangerTitle}>Reset Onboarding (Dev)</Text>
+                  <Text style={styles.dangerSub}>For testing only</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
-          <View style={styles.divider} />
-          <View style={styles.aboutRow}>
-            <Text style={styles.aboutLabel}>Version</Text>
-            <Text style={styles.aboutValue}>1.0.0 (Phase 1)</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.aboutRow}>
-            <Text style={styles.aboutLabel}>Bible API</Text>
-            <Text style={styles.aboutValue}>bible-api.com</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.aboutRow}>
-            <Text style={styles.aboutLabel}>Built with</Text>
-            <Text style={styles.aboutValue}>React Native + Expo</Text>
           </View>
         </View>
-      </View>
 
-      <View style={{ height: 40 }} />
+
+
+
+
+
+        {/* About */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            <Ionicons name="information-circle-outline" size={15} color={Colors.primary} /> About
+          </Text>
+          <View style={styles.card}>
+            <View style={styles.aboutRow}>
+              <Text style={styles.aboutLabel}>App Name</Text>
+              <Text style={styles.aboutValue}>ShepherdVerse</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.aboutRow}>
+              <Text style={styles.aboutLabel}>Version</Text>
+              <Text style={styles.aboutValue}>1.0.0 (Phase 1)</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.aboutRow}>
+              <Text style={styles.aboutLabel}>Bible API</Text>
+              <Text style={styles.aboutValue}>bible-api.com</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.aboutRow}>
+              <Text style={styles.aboutLabel}>Built with</Text>
+              <Text style={styles.aboutValue}>React Native + Expo</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ height: 40 }} />
+
     </ScrollView>
   );
 }
